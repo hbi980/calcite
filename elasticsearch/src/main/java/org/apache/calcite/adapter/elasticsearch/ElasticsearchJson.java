@@ -26,21 +26,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableSet;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -49,20 +50,13 @@ import java.util.stream.StreamSupport;
 import static java.util.Collections.unmodifiableMap;
 
 /**
- * Internal objects (and deserializers) used to parse elastic search results
+ * Internal objects (and deserializers) used to parse Elasticsearch results
  * (which are in JSON format).
  *
  * <p>Since we're using basic row-level rest client http response has to be
  * processed manually using JSON (jackson) library.
  */
-class ElasticsearchJson {
-
-  /**
-   * Used as special aggregation key for missing values (documents which are missing a field).
-   * Buckets with that value are then converted to {@code null}s in flat tabular format.
-   * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-sum-aggregation.html">Missing Value</a>
-   */
-  static final JsonNode MISSING_VALUE = JsonNodeFactory.instance.textNode("__MISSING__");
+final class ElasticsearchJson {
 
   private ElasticsearchJson() {}
 
@@ -79,11 +73,63 @@ class ElasticsearchJson {
         rows.computeIfAbsent(r, ignore -> new ArrayList<>()).add(v);
     aggregations.forEach(a -> visitValueNodes(a, new ArrayList<>(), cons));
     rows.forEach((k, v) -> {
-      Map<String, Object> row = new LinkedHashMap<>(k.keys);
-      v.forEach(val -> row.put(val.getName(), val.value()));
-      consumer.accept(row);
+      if (v.stream().anyMatch(val -> val instanceof GroupValue)) {
+        v.forEach(tuple -> {
+          Map<String, Object> groupRow = new LinkedHashMap<>(k.keys);
+          groupRow.put(tuple.getName(), tuple.value());
+          consumer.accept(groupRow);
+        });
+      } else {
+        Map<String, Object> row = new LinkedHashMap<>(k.keys);
+        v.forEach(val -> row.put(val.getName(), val.value()));
+        consumer.accept(row);
+      }
     });
   }
+
+  /**
+   * Visits Elasticsearch
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html">mapping
+   * properties</a> and calls consumer for each {@code field / type} pair.
+   * Nested fields are represented as {@code foo.bar.qux}.
+   */
+  static void visitMappingProperties(ObjectNode mapping,
+      BiConsumer<String, String> consumer) {
+    Objects.requireNonNull(mapping, "mapping");
+    Objects.requireNonNull(consumer, "consumer");
+    visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+  }
+
+  private static void visitMappingProperties(Deque<String> path,
+      ObjectNode mapping, BiConsumer<String, String> consumer) {
+    Objects.requireNonNull(mapping, "mapping");
+    if (mapping.isMissingNode()) {
+      return;
+    }
+
+    if (mapping.has("properties")) {
+      // recurse
+      visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
+      return;
+    }
+
+    if (mapping.has("type")) {
+      // this is leaf (register field / type mapping)
+      consumer.accept(String.join(".", path), mapping.get("type").asText());
+      return;
+    }
+
+    // otherwise continue visiting mapping(s)
+    Iterable<Map.Entry<String, JsonNode>> iter = mapping::fields;
+    for (Map.Entry<String, JsonNode> entry : iter) {
+      final String name = entry.getKey();
+      final ObjectNode node = (ObjectNode) entry.getValue();
+      path.add(name);
+      visitMappingProperties(path, node, consumer);
+      path.removeLast();
+    }
+  }
+
 
   /**
    * Identifies a calcite row (as in relational algebra)
@@ -139,7 +185,7 @@ class ElasticsearchJson {
       Bucket bucket = (Bucket) aggregation;
       if (bucket.hasNoAggregations()) {
         // bucket with no aggregations is also considered a leaf node
-        visitValueNodes(MultiValue.of(bucket.getName(), bucket.key()), parents, consumer);
+        visitValueNodes(GroupValue.of(bucket.getName(), bucket.key()), parents, consumer);
         return;
       }
       parents.add(bucket);
@@ -162,6 +208,7 @@ class ElasticsearchJson {
   static class Result {
     private final SearchHits hits;
     private final Aggregations aggregations;
+    private final String scrollId;
     private final long took;
 
     /**
@@ -172,9 +219,11 @@ class ElasticsearchJson {
     @JsonCreator
     Result(@JsonProperty("hits") SearchHits hits,
         @JsonProperty("aggregations") Aggregations aggregations,
+        @JsonProperty("_scroll_id") String scrollId,
         @JsonProperty("took") long took) {
       this.hits = Objects.requireNonNull(hits, "hits");
       this.aggregations = aggregations;
+      this.scrollId = scrollId;
       this.took = took;
     }
 
@@ -186,8 +235,12 @@ class ElasticsearchJson {
       return aggregations;
     }
 
-    public Duration took() {
+    Duration took() {
       return Duration.ofMillis(took);
+    }
+
+    Optional<String> scrollId() {
+      return Optional.ofNullable(scrollId);
     }
 
   }
@@ -223,12 +276,16 @@ class ElasticsearchJson {
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class SearchHit {
+
+    /**
+     * ID of the document (not available in aggregations)
+     */
     private final String id;
     private final Map<String, Object> source;
     private final Map<String, Object> fields;
 
     @JsonCreator
-    SearchHit(@JsonProperty("_id") final String id,
+    SearchHit(@JsonProperty(ElasticsearchConstants.ID) final String id,
                       @JsonProperty("_source") final Map<String, Object> source,
                       @JsonProperty("fields") final Map<String, Object> fields) {
       this.id = Objects.requireNonNull(id, "id");
@@ -515,13 +572,23 @@ class ElasticsearchJson {
       return values().get("value");
     }
 
-    /**
-     * Constructs a {@link MultiValue} instance with a single value.
-     */
-    static MultiValue of(String name, Object value) {
-      return new MultiValue(name, Collections.singletonMap("value", value));
+  }
+
+  /**
+   * Distinguishes from {@link MultiValue}.
+   * In order that rows which have the same key can be put into result map.
+   */
+  static class GroupValue extends MultiValue {
+    GroupValue(String name, Map<String, Object> values) {
+      super(name, values);
     }
 
+    /**
+     * Constructs a {@link GroupValue} instance with a single value.
+     */
+    static GroupValue of(String name, Object value) {
+      return new GroupValue(name, Collections.singletonMap("value", value));
+    }
   }
 
   /**
@@ -529,8 +596,9 @@ class ElasticsearchJson {
    */
   static class AggregationsDeserializer extends StdDeserializer<Aggregations> {
 
-    private static final Set<String> IGNORE_TOKENS = new HashSet<>(Arrays.asList("meta",
-        "buckets", "value", "values", "value_as_string", "doc_count", "key", "key_as_string"));
+    private static final Set<String> IGNORE_TOKENS =
+        ImmutableSet.of("meta", "buckets", "value", "values", "value_as_string",
+            "doc_count", "key", "key_as_string");
 
     AggregationsDeserializer() {
       super(Aggregations.class);
@@ -593,18 +661,23 @@ class ElasticsearchJson {
      * Determines if current key is a missing field key. Missing key is returned when document
      * does not have pivoting attribute (example {@code GROUP BY _MAP['a.b.missing']}). It helps
      * grouping documents which don't have a field. In relational algebra this
-     * would be {@code null}.
+     * would normally be {@code null}.
+     *
+     * <p>Please note that missing value is different for each type.
      *
      * @param key current {@code key} (usually string) as returned by ES
      * @return {@code true} if this value
-     * @see #MISSING_VALUE
      */
     private static boolean isMissingBucket(JsonNode key) {
-      return MISSING_VALUE.equals(key);
+      return ElasticsearchMapping.Datatype.isMissingValue(key);
     }
 
     private static Bucket parseBucket(JsonParser parser, String name, ObjectNode node)
         throws JsonProcessingException  {
+
+      if (!node.has("key")) {
+        throw new IllegalArgumentException("No 'key' attribute for " + node);
+      }
 
       final JsonNode keyNode = node.get("key");
       final Object key;
@@ -625,6 +698,7 @@ class ElasticsearchJson {
     }
 
   }
+
 }
 
 // End ElasticsearchJson.java

@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.18.0-SNAPSHOT</version>
+  <version>1.19.0-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -58,14 +58,14 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>17</version.minor>
+    <version.minor>18</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.12.0</avatica.version>
+    <avatica.version>1.13.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.4.0</cassandra-driver-core.version>
     <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
@@ -82,7 +82,7 @@ limitations under the License.
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
-    <freemarker.version>2.3.25-incubating</freemarker.version>
+    <freemarker.version>2.3.28</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <geode.version>1.6.0</geode.version>
     <fongo.version>2.1.1</fongo.version>
@@ -103,11 +103,11 @@ limitations under the License.
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
     <jackson.version>2.9.6</jackson.version>
-    <janino.version>3.0.9</janino.version>
+    <janino.version>3.0.11</janino.version>
     <java-diff.version>1.1.2</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.2.19.v20160908</jetty.version>
+    <jetty.version>9.4.11.v20180605</jetty.version>
     <jmh.version>1.12</jmh.version>
     <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
@@ -116,30 +116,32 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
-    <maven-scm-provider.version>1.9.5</maven-scm-provider.version>
-    <mockito.version>2.21.0</mockito.version>
+    <maven-remote-resources-plugin.version>1.6.0</maven-remote-resources-plugin.version>
+    <maven-scm-provider.version>1.10.0</maven-scm-provider.version>
+    <mockito.version>2.22.0</mockito.version>
     <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
     <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
-    <owasp-dependency-check.version>3.3.1</owasp-dependency-check.version>
+    <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
     <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
-    <postgresql.version>9.3-1102-jdbc3</postgresql.version>
+    <postgresql.version>9.3-1102-jdbc41</postgresql.version>
     <quidem.version>0.9</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
-    <servlet.version>3.0.1</servlet.version>
-    <slf4j.version>1.7.13</slf4j.version>
+    <servlet.version>4.0.1</servlet.version>
+    <slf4j.version>1.7.25</slf4j.version>
     <log4j2.version>2.11.0</log4j2.version>
     <spark.version>2.2.0</spark.version>
-    <sqlline.version>1.5.0</sqlline.version>
+    <sqlline.version>1.6.0</sqlline.version>
     <tpcds.version>1.2</tpcds.version>
     <xalan.version>2.7.1</xalan.version>
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
     <fmpp.version>0.9.16</fmpp.version>
+    <jsonpath.version>2.4.0</jsonpath.version>
 
     <!-- Other properties (not version numbers) -->
     <!-- Java 1.8 does not support -html5, so override via profile for Java 1.8 -->
@@ -162,8 +164,8 @@ limitations under the License.
   </issueManagement>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</developerConnection>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</developerConnection>
     <url>https://github.com/apache/calcite</url>
     <tag>HEAD</tag>
   </scm>
@@ -584,6 +586,17 @@ limitations under the License.
         <version>${xalan.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.jayway.jsonpath</groupId>
+        <artifactId>json-path</artifactId>
+        <version>${jsonpath.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
         <groupId>com.github.stephenc.jcip</groupId>
         <artifactId>jcip-annotations</artifactId>
         <version>${jcip-annotations.version}</version>
@@ -619,6 +632,7 @@ limitations under the License.
             <exclude>**/*TokenManager.class</exclude>
             <exclude>**/TokenMgrError.class</exclude>
             <exclude>**/org/apache/calcite/adapter/os/Processes$ProcessFactory.class</exclude>
+            <exclude>**/org/apache/calcite/adapter/os/OsAdapterTest.class</exclude>
             <exclude>**/org/apache/calcite/runtime/Resources$Inst.class</exclude>
             <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class</exclude>
             <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript$ShellCommand.class</exclude>
@@ -706,7 +720,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <!-- If you are looking to change source/target, 
+        <!-- If you are looking to change source/target,
              change the maven.compiler.{source,target} property -->
         <configuration>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
@@ -722,8 +736,8 @@ limitations under the License.
             <configuration>
               <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
               <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
+              <propertyExpansion>base_dir=${top.dir}</propertyExpansion>
               <consoleOutput>true</consoleOutput>
-              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
               <failOnViolation>true</failOnViolation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
             </configuration>
@@ -783,10 +797,25 @@ limitations under the License.
         <dependencies>
           <dependency>
             <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-api</artifactId>
+            <version>${maven-scm-provider.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-gitexe</artifactId>
             <version>${maven-scm-provider.version}</version>
           </dependency>
         </dependencies>
+      </plugin>
+      <!-- CALCITE-2759, CALCITE-537: maven-remote-resources-plugin 1.6.0 resolves MRRESOURCES-91
+        Avoid overwrite of the destination file if the produced
+        contents is the same.
+        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
+        we do not want recompile the module every time. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-remote-resources-plugin</artifactId>
+        <version>${maven-remote-resources-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -916,7 +945,8 @@ limitations under the License.
               <configuration>
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
-                <argLine>-Xmx1024m</argLine>
+                <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+                <argLine>-Xmx1024m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
                 <systemPropertyVariables>
                   <calcite.integrationTest>true</calcite.integrationTest>
                 </systemPropertyVariables>
@@ -988,8 +1018,8 @@ limitations under the License.
                 <value>tr</value>
               </systemProperty>
             </systemProperties>
-            <!--<argLine>-Xmx1536m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
-            <argLine>-Xmx1536m</argLine>
+            <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+            <argLine>-Xmx1536m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -1169,29 +1199,6 @@ limitations under the License.
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!-- CALCITE-537: workaround for MRRESOURCES-91
-        Avoid overwrite of the destination file if the produced
-        contents is the same.
-        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
-        we do not want recompile the module every time. -->
-      <id>skip-apache-licenses</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-        <file><exists>target/maven-shared-archive-resources/META-INF/LICENSE</exists></file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-remote-resources-plugin</artifactId>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
           </plugin>
         </plugins>
       </build>

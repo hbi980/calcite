@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util;
+package org.apache.calcite.sql;
+
+import java.util.Locale;
 
 /**
- * ClosableAllocationOwner represents an object which can take ownership of
- * ClosableAllocations and guarantee that they will be cleaned up correctly when
- * its own closeAllocation() is called.
+ * Categorizing Json value empty or error behaviors.
  */
-public interface ClosableAllocationOwner extends ClosableAllocation {
-  //~ Methods ----------------------------------------------------------------
+public enum SqlJsonValueEmptyOrErrorBehavior {
+  ERROR,
+  NULL,
+  DEFAULT;
 
-  /**
-   * Assigns ownership of a ClosableAllocation to this owner.
-   *
-   * @param allocation the ClosableAllocation to take over
-   */
-  void addAllocation(ClosableAllocation allocation);
+  @Override public String toString() {
+    return String.format(Locale.ROOT,
+        "SqlJsonValueEmptyOrErrorBehavior[%s]", name());
+  }
 }
 
-// End ClosableAllocationOwner.java
+// End SqlJsonValueEmptyOrErrorBehavior.java

@@ -196,9 +196,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // "DOT"
     registerOp(SqlStdOperatorTable.DOT,
-        (cx, call) -> cx.getRexBuilder().makeCall(SqlStdOperatorTable.DOT,
+        (cx, call) -> cx.getRexBuilder().makeFieldAccess(
             cx.convertExpression(call.operand(0)),
-            cx.getRexBuilder().makeLiteral(call.operand(1).toString())));
+            call.operand(1).toString(), false));
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
@@ -208,6 +208,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             SqlStdOperatorTable.POWER.createCall(SqlParserPos.ZERO,
                 call.operand(0),
                 SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO))));
+
+    // Convert json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
+    // to cast(json_value('{"foo":"bar"}', 'lax $.foo') as varchar(2000))
+    registerOp(
+        SqlStdOperatorTable.JSON_VALUE,
+        (cx, call) -> {
+          SqlNode expanded =
+              SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
+                  SqlStdOperatorTable.JSON_VALUE_ANY.createCall(
+                      SqlParserPos.ZERO, call.operand(0), call.operand(1),
+                      call.operand(2), call.operand(3), call.operand(4), null),
+              call.operand(5));
+          return cx.convertExpression(expanded);
+        });
 
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule

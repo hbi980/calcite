@@ -14,16 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.elasticsearch;
+package org.apache.calcite.materialize;
 
-/**
- * Thrown when {@link org.apache.calcite.rel.RelNode} expression can't be processed
- * (or converted into ES query)
- */
-class ExpressionNotAnalyzableException extends Exception {
-  ExpressionNotAnalyzableException(String message, Throwable cause) {
-    super(message, cause);
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+import java.util.Objects;
+
+/** Non-root node in a {@link Lattice}. */
+public class LatticeChildNode extends LatticeNode {
+  public final LatticeNode parent;
+  public final ImmutableList<IntPair> link;
+
+  LatticeChildNode(LatticeSpace space, LatticeNode parent,
+      MutableNode mutableNode) {
+    super(space, parent, mutableNode);
+    this.parent = Objects.requireNonNull(parent);
+    this.link = ImmutableList.copyOf(mutableNode.step.keys);
+  }
+
+  void use(List<LatticeNode> usedNodes) {
+    if (!usedNodes.contains(this)) {
+      parent.use(usedNodes);
+      usedNodes.add(this);
+    }
   }
 }
 
-// End ExpressionNotAnalyzableException.java
+// End LatticeChildNode.java

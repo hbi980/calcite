@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util;
+package org.apache.calcite.sql;
+
+import java.util.Locale;
 
 /**
- * ClosableAllocation represents an object which requires a call in order to
- * release resources early rather than waiting for finalization.
+ * Flag to indicate if the json value is missing or an error is thrown where
+ * EmptyOrErrorBehavior is invoked.
  */
-public interface ClosableAllocation {
-  //~ Methods ----------------------------------------------------------------
+public enum SqlJsonEmptyOrError {
+  EMPTY,
+  ERROR;
 
-  /**
-   * Closes this object.
-   */
-  void closeAllocation();
+  @Override public String toString() {
+    return String.format(Locale.ROOT, "SqlJsonEmptyOrError[%s]", name());
+  }
 }
 
-// End ClosableAllocation.java
+// End SqlJsonEmptyOrError.java
