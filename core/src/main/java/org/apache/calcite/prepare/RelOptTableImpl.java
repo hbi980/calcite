@@ -17,6 +17,7 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -49,6 +50,7 @@ import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TemporalTable;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlAccessType;
@@ -271,7 +273,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     if (Hook.ENABLE_BINDABLE.get(false)) {
       return LogicalTableScan.create(cluster, this);
     }
-    if (CalcitePrepareImpl.ENABLE_ENUMERABLE
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
         && table instanceof QueryableTable) {
       return EnumerableTableScan.create(cluster, this);
     }
@@ -280,7 +282,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         || table instanceof ProjectableFilterableTable) {
       return LogicalTableScan.create(cluster, this);
     }
-    if (CalcitePrepareImpl.ENABLE_ENUMERABLE) {
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
       return EnumerableTableScan.create(cluster, this);
     }
     throw new AssertionError();
@@ -325,6 +327,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     default:
       return !(table instanceof StreamableTable);
     }
+  }
+
+  @Override public boolean isTemporal() {
+    return table instanceof TemporalTable;
   }
 
   public List<String> getQualifiedName() {

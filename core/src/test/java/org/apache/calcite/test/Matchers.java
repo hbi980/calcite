@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -79,7 +80,7 @@ public class Matchers {
           CalciteAssert.toStringList(resultSet, actualList);
           resultSet.close();
         } catch (SQLException e) {
-          throw new RuntimeException(e);
+          throw TestUtil.rethrow(e);
         }
         Collections.sort(actualList);
 
@@ -131,6 +132,23 @@ public class Matchers {
   @Factory
   public static <T extends Number> Matcher<T> within(T value, double epsilon) {
     return new IsWithin<T>(value, epsilon);
+  }
+
+  /**
+   * Creates a matcher that matches if the examined value is between bounds:
+   * <code>min &le; value &le; max</code>.
+   *
+   * @param <T> value type
+   * @param min Lower bound
+   * @param max Upper bound
+   */
+  public static <T extends Comparable<T>> Matcher<T> between(T min, T max) {
+    return new CustomTypeSafeMatcher<T>("between " + min + " and " + max) {
+      protected boolean matchesSafely(T item) {
+        return min.compareTo(item) <= 0
+            && item.compareTo(max) <= 0;
+      }
+    };
   }
 
   /** Creates a matcher by applying a function to a value before calling

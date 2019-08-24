@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptSchemaWithSampling;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -35,6 +36,10 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
@@ -46,6 +51,7 @@ import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -64,6 +70,7 @@ import org.apache.calcite.test.catalog.MockCatalogReaderDynamic;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -578,7 +585,7 @@ public abstract class SqlToRelTestBase {
       } catch (RuntimeException | Error e) {
         throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       final RelDataTypeFactory typeFactory = getTypeFactory();
       final Prepare.CatalogReader catalogReader =
@@ -631,7 +638,9 @@ public abstract class SqlToRelTestBase {
       if (clusterFactory != null) {
         cluster = clusterFactory.apply(cluster);
       }
-      return new SqlToRelConverter(null, validator, catalogReader, cluster,
+      RelOptTable.ViewExpander viewExpander =
+          new MockViewExpander(validator, catalogReader, cluster, config);
+      return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
           StandardConvertletTable.INSTANCE, config);
     }
 
@@ -845,6 +854,65 @@ public abstract class SqlToRelTestBase {
     // override SqlValidator
     public boolean shouldExpandIdentifiers() {
       return true;
+    }
+  }
+
+  /**
+   * {@link RelOptTable.ViewExpander} implementation for testing usage.
+   */
+  private static class MockViewExpander implements RelOptTable.ViewExpander {
+    private final SqlValidator validator;
+    private final Prepare.CatalogReader catalogReader;
+    private final RelOptCluster cluster;
+    private final SqlToRelConverter.Config config;
+
+    MockViewExpander(SqlValidator validator, Prepare.CatalogReader catalogReader,
+        RelOptCluster cluster, SqlToRelConverter.Config config) {
+      this.validator = validator;
+      this.catalogReader = catalogReader;
+      this.cluster = cluster;
+      this.config = config;
+    }
+
+    @Override public RelRoot expandView(RelDataType rowType, String queryString,
+        List<String> schemaPath, List<String> viewPath) {
+      try {
+        SqlNode parsedNode = SqlParser.create(queryString).parseStmt();
+        SqlNode validatedNode = validator.validate(parsedNode);
+        SqlToRelConverter converter = new SqlToRelConverter(
+            this, validator, catalogReader, cluster,
+            StandardConvertletTable.INSTANCE, config);
+        return converter.convertQuery(validatedNode, false, true);
+      } catch (SqlParseException e) {
+        throw new RuntimeException("Error happened while expanding view.", e);
+      }
+    }
+  }
+
+  /**
+   * Custom implementation of Correlate for testing.
+   */
+  public static class CustomCorrelate extends Correlate {
+    public CustomCorrelate(
+        RelOptCluster cluster,
+        RelTraitSet traits,
+        RelNode left,
+        RelNode right,
+        CorrelationId correlationId,
+        ImmutableBitSet requiredColumns,
+        JoinRelType joinType) {
+      super(cluster, traits, left, right, correlationId, requiredColumns, joinType);
+    }
+
+    @Override public Correlate copy(RelTraitSet traitSet,
+        RelNode left, RelNode right, CorrelationId correlationId,
+        ImmutableBitSet requiredColumns, JoinRelType joinType) {
+      return new CustomCorrelate(getCluster(), traitSet, left, right,
+          correlationId, requiredColumns, joinType);
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+      return shuttle.visit(this);
     }
   }
 }
